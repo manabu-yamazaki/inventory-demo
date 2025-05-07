@@ -29,7 +29,7 @@ export async function getUserProfileAll() {
   const { data, error } = await supabase
     .from('user_profiles')
     .select('*')
-    .order('created_at', { ascending: true });
+    .order('created_at', { ascending: false });
 
   if (error) throw error;
   return data as UserProfile[];
@@ -56,13 +56,37 @@ export async function getUserPermissions(userId: string) {
 }
 
 // ユーザーの権限を更新する関数（管理者のみ）
-export async function updateUserRole(userId: string, role: 'admin' | 'manager' | 'user') {
-  const { error } = await supabase
-    .from('user_profiles')
-    .update({ role })
-    .eq('id', userId);
+export async function updateUserRole(userId: string, newRole: 'admin' | 'manager' | 'user') {
+  try {
+    const { data: session } = await supabase.auth.getSession();
+    if (!session.session) {
+      throw new Error('認証されていません');
+    }
 
-  if (error) throw error;
+    // 現在のユーザーのロールを確認
+    const { data: currentUser } = await supabase
+      .from('user_profiles')
+      .select('role')
+      .eq('id', session.session.user.id)
+      .single();
+
+    if (!currentUser || currentUser.role !== 'admin') {
+      throw new Error('権限がありません');
+    }
+
+    // ロールの更新
+    const { error } = await supabase
+      .from('user_profiles')
+      .update({ role: newRole })
+      .eq('id', userId);
+
+    if (error) throw error;
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating user role:', error);
+    throw error;
+  }
 }
 
 // ユーザーが特定の権限を持っているかチェックする関数
