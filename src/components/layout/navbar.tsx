@@ -48,6 +48,9 @@ export function Navbar() {
               <Link href="/orders" className="text-sm font-medium">
                 注文管理
               </Link>
+              <Link href="/users" className="text-sm font-medium">
+                ユーザー一覧
+              </Link>
               <Link href="/test1" className="text-sm font-medium">
                 test1
               </Link>
@@ -92,6 +95,13 @@ export function Navbar() {
                         onClick={() => setIsOpen(false)}
                       >
                         注文管理
+                      </Link>
+                      <Link
+                        href="/users"
+                        className="block text-sm font-medium"
+                        onClick={() => setIsOpen(false)}
+                      >
+                        ユーザー一覧
                       </Link>
                       <Link
                         href="/profile"

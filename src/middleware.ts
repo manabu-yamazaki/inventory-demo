@@ -16,7 +16,7 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // 認証が必要なページ
-  const protectedPaths = ['/dashboard'];
+  const protectedPaths = ['/dashboard', '/users'];
   // 認証済みユーザーがアクセスできないページ
   const authPaths = ['/login', '/signup'];
 

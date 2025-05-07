@@ -1,10 +1,16 @@
 import { createClient } from '@supabase/supabase-js';
-import { Database } from '@/types/supabase';
+import { UserProfile } from '@/types/user';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+  },
+});
 
 // ユーザープロファイルを取得する関数
 export async function getUserProfile(userId: string) {
@@ -16,6 +22,17 @@ export async function getUserProfile(userId: string) {
 
   if (error) throw error;
   return data;
+}
+
+// ユーザープロファイル一覧を取得する関数
+export async function getUserProfileAll() {
+  const { data, error } = await supabase
+    .from('user_profiles')
+    .select('*')
+    .order('created_at', { ascending: true });
+
+  if (error) throw error;
+  return data as UserProfile[];
 }
 
 // ユーザーの権限を取得する関数

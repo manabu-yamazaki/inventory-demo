@@ -84,14 +84,20 @@ CREATE POLICY "ユーザーは自分のプロファイルを閲覧可能"
   ON user_profiles FOR SELECT
   USING (auth.uid() = id);
 
+-- 管理者のロールを確認する関数
+CREATE OR REPLACE FUNCTION is_admin()
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM user_profiles
+    WHERE id = auth.uid() AND role = 'admin'
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 CREATE POLICY "管理者は全てのプロファイルを閲覧可能"
   ON user_profiles FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM user_profiles
-      WHERE id = auth.uid() AND role = 'admin'
-    )
-  );
+  USING (is_admin());
 
 CREATE POLICY "ユーザーは自分のプロファイルを更新可能"
   ON user_profiles FOR UPDATE
@@ -99,12 +105,7 @@ CREATE POLICY "ユーザーは自分のプロファイルを更新可能"
 
 CREATE POLICY "管理者は全てのプロファイルを更新可能"
   ON user_profiles FOR UPDATE
-  USING (
-    EXISTS (
-      SELECT 1 FROM user_profiles
-      WHERE id = auth.uid() AND role = 'admin'
-    )
-  );
+  USING (is_admin());
 
 -- 権限テーブルのポリシー
 CREATE POLICY "全てのユーザーが権限を閲覧可能"
