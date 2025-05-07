@@ -45,7 +45,6 @@ export function UserList({ users, currentUserRole, onRoleUpdate }: UserListProps
   };
 
   const RoleSelect = ({ user }: { user: UserProfile }) => {
-    console.log(currentUserRole);
     if (currentUserRole !== 'admin' || user.role === 'admin') {
       return (
         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
