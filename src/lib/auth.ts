@@ -1,16 +1,7 @@
-import { createClient } from '@supabase/supabase-js';
 import { User } from '@/types/auth';
+import { getUserProfile } from './supabase';
+import { supabase } from './supabase/config';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true,
-  },
-});
 
 export async function getToken() {
   const { data: { session } } = await supabase.auth.getSession();
@@ -45,9 +36,49 @@ export const getCurrentUser = async (): Promise<User | null> => {
   
   if (error || !user) return null;
 
+  const role = await getUserProfile(user.id);
+
   return {
     id: user.id,
     email: user.email!,
-    role: 'user', // デフォルトは一般ユーザー
+    role: role?.role ?? 'user',
   };
-}; 
+};
+
+export type UserRole = 'admin' | 'manager' | 'user';
+
+export async function checkAuth() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    throw new Error('認証が必要です');
+  }
+  return session;
+}
+
+export async function checkRole(allowedRoles: UserRole[]) {
+  const session = await checkAuth();
+
+  const { data: profile, error: profileError } = await supabase
+    .from('user_profiles')
+    .select('role')
+    .eq('id', session.user.id)
+    .single();
+
+  if (profileError || !profile) {
+    throw new Error('ユーザープロファイルが見つかりません');
+  }
+
+  if (!allowedRoles.includes(profile.role as UserRole)) {
+    throw new Error('この操作を実行する権限がありません');
+  }
+
+  return profile.role as UserRole;
+}
+
+export async function checkAdminOrManager() {
+  return checkRole(['admin', 'manager']);
+}
+
+export async function checkAdmin() {
+  return checkRole(['admin']);
+} 

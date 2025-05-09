@@ -2,12 +2,16 @@ import { useState, useEffect } from "react";
 import { ProductCategory } from "@/types/inventory";
 import { createProductWithInventory, getProductCategories } from "@/lib/inventory";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/auth-context";
+import { useRouter } from "next/navigation";
 
 interface ProductFormProps {
   onSuccess?: () => void;
 }
 
 export function ProductForm({ onSuccess }: ProductFormProps) {
+  const router = useRouter();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [formData, setFormData] = useState({
@@ -21,6 +25,17 @@ export function ProductForm({ onSuccess }: ProductFormProps) {
     initial_quantity: 0,
   });
 
+  useEffect(() => {
+    // 権限チェック
+    if (!user || (user.role !== 'admin' && user.role !== 'manager')) {
+      toast.error("この操作を実行する権限がありません");
+      router.push("/inventory");
+      return;
+    }
+
+    loadCategories();
+  }, [user, router]);
+
   const loadCategories = async () => {
     try {
       const data = await getProductCategories();
@@ -31,12 +46,16 @@ export function ProductForm({ onSuccess }: ProductFormProps) {
     }
   };
 
-  useEffect(() => {
-    loadCategories();
-  }, []);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // 権限チェック
+    if (!user || (user.role !== 'admin' && user.role !== 'manager')) {
+      toast.error("この操作を実行する権限がありません");
+      router.push("/inventory");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -72,6 +91,11 @@ export function ProductForm({ onSuccess }: ProductFormProps) {
       setLoading(false);
     }
   };
+
+  // 権限がない場合はフォームを表示しない
+  if (!user || (user.role !== 'admin' && user.role !== 'manager')) {
+    return null;
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">

@@ -1,5 +1,6 @@
-import { supabase } from './supabase';
+import { supabase } from './supabase/config';
 import { Product, ProductCategory, Inventory, InventoryHistory } from '@/types/inventory';
+import { checkAdminOrManager } from './auth';
 
 // 商品カテゴリー関連の関数
 export async function getProductCategories() {
@@ -139,6 +140,9 @@ export async function createProductWithInventory(
   location: string,
   initialQuantity: number = 0
 ) {
+  // 権限チェック
+  await checkAdminOrManager();
+
   const { data: productData, error: productError } = await supabase
     .from('products')
     .insert(product)
