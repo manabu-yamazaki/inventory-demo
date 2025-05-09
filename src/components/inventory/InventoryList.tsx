@@ -1,7 +1,8 @@
 import { Inventory } from "@/types/inventory";
 import { adjustInventory } from "@/lib/inventory";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { toast } from "sonner";
+import { Search } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,6 +26,36 @@ export function InventoryList({ inventory, onUpdate }: InventoryListProps) {
     type: 'in' | 'out';
   } | null>(null);
   const [adjusting, setAdjusting] = useState<string | null>(null);
+  const [filters, setFilters] = useState({
+    productName: '',
+    categoryName: '',
+    location: '',
+  });
+
+  // ユニークなカテゴリー名と保管場所のリストを取得
+  const categories = useMemo(() => {
+    const uniqueCategories = new Set(inventory.map(item => item.product?.category?.name).filter(Boolean));
+    return Array.from(uniqueCategories);
+  }, [inventory]);
+
+  const locations = useMemo(() => {
+    const uniqueLocations = new Set(inventory.map(item => item.location).filter(Boolean));
+    return Array.from(uniqueLocations);
+  }, [inventory]);
+
+  // フィルタリングされた在庫
+  const filteredInventory = useMemo(() => {
+    return inventory.filter(item => {
+      const matchesProduct = (item.product?.name?.toLowerCase() ?? '').includes(filters.productName.toLowerCase());
+      const matchesCategory = !filters.categoryName || item.product?.category?.name === filters.categoryName;
+      const matchesLocation = !filters.location || item.location === filters.location;
+      return matchesProduct && matchesCategory && matchesLocation;
+    });
+  }, [inventory, filters]);
+
+  const handleFilterChange = (key: keyof typeof filters, value: string) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+  };
 
   const handleAdjustment = async (productId: string, type: 'in' | 'out') => {
     const item = inventory.find(i => i.product_id === productId);
@@ -64,6 +95,48 @@ export function InventoryList({ inventory, onUpdate }: InventoryListProps) {
 
   return (
     <>
+      {/* フィルター */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg mb-4">
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Search className="h-5 w-5 text-gray-400" />
+          </div>
+          <input
+            type="text"
+            placeholder="商品名で検索"
+            value={filters.productName}
+            onChange={(e) => handleFilterChange('productName', e.target.value)}
+            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+          />
+        </div>
+
+        <select
+          value={filters.categoryName}
+          onChange={(e) => handleFilterChange('categoryName', e.target.value)}
+          className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+        >
+          <option value="">すべてのカテゴリー</option>
+          {categories.map((category) => (
+            <option key={category} value={category}>
+              {category}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={filters.location}
+          onChange={(e) => handleFilterChange('location', e.target.value)}
+          className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+        >
+          <option value="">すべての保管場所</option>
+          {locations.map((location) => (
+            <option key={location} value={location}>
+              {location}
+            </option>
+          ))}
+        </select>
+      </div>
+
       <div className="bg-white shadow-md rounded-lg overflow-hidden">
         {/* デスクトップ表示 */}
         <div className="hidden md:block">
@@ -88,7 +161,7 @@ export function InventoryList({ inventory, onUpdate }: InventoryListProps) {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {inventory.map((item) => (
+              {filteredInventory.map((item) => (
                 <tr key={item.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">
@@ -143,7 +216,7 @@ export function InventoryList({ inventory, onUpdate }: InventoryListProps) {
         {/* モバイル表示 */}
         <div className="md:hidden">
           <div className="divide-y divide-gray-200">
-            {inventory.map((item) => (
+            {filteredInventory.map((item) => (
               <div key={item.id} className="p-4 hover:bg-gray-50">
                 <div className="flex justify-between items-start mb-2">
                   <div>
