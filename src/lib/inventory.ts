@@ -51,17 +51,6 @@ export async function getProduct(id: string) {
   return data as Product;
 }
 
-export async function createProduct(product: Omit<Product, 'id' | 'created_at' | 'updated_at'>) {
-  const { data, error } = await supabase
-    .from('products')
-    .insert(product)
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data as Product;
-}
-
 // 在庫関連の関数
 export async function getInventory() {
   const { data, error } = await supabase
@@ -90,25 +79,6 @@ export async function getInventoryByProduct(productId: string) {
       )
     `)
     .eq('product_id', productId)
-    .single();
-
-  if (error) throw error;
-  return data as Inventory;
-}
-
-export async function updateInventory(
-  productId: string,
-  quantity: number,
-  location?: string
-) {
-  const { data, error } = await supabase
-    .from('inventory')
-    .upsert({
-      product_id: productId,
-      quantity,
-      location,
-    })
-    .select()
     .single();
 
   if (error) throw error;
@@ -161,4 +131,40 @@ export async function adjustInventory(
   if (error) throw error;
 
   return data as Inventory;
+}
+
+// 商品と在庫を同時に登録する関数
+export async function createProductWithInventory(
+  product: Omit<Product, 'id' | 'created_at' | 'updated_at'>,
+  location: string,
+  initialQuantity: number = 0
+) {
+  const { data: productData, error: productError } = await supabase
+    .from('products')
+    .insert(product)
+    .select()
+    .single();
+
+  if (productError) throw productError;
+
+  const { data: inventoryData, error: inventoryError } = await supabase
+    .from('inventory')
+    .insert({
+      product_id: productData.id,
+      quantity: initialQuantity,
+      location,
+    })
+    .select()
+    .single();
+
+  if (inventoryError) {
+    // 在庫登録に失敗した場合、商品も削除
+    await supabase.from('products').delete().eq('id', productData.id);
+    throw inventoryError;
+  }
+
+  return {
+    product: productData as Product,
+    inventory: inventoryData as Inventory,
+  };
 } 

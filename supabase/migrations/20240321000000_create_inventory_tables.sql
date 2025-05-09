@@ -106,12 +106,12 @@ BEGIN
     created_by
   ) VALUES (
     NEW.product_id,
-    NEW.quantity - OLD.quantity,
-    OLD.quantity,
+    NEW.quantity - CASE WHEN OLD.quantity is null THEN 0 ELSE OLD.quantity END,
+    CASE WHEN OLD.quantity is null THEN 0 ELSE OLD.quantity END,
     NEW.quantity,
     CASE
-      WHEN NEW.quantity > OLD.quantity THEN 'in'
-      WHEN NEW.quantity < OLD.quantity THEN 'out'
+      WHEN NEW.quantity > CASE WHEN OLD.quantity is null THEN 0 ELSE OLD.quantity END THEN 'in'
+      WHEN NEW.quantity < CASE WHEN OLD.quantity is null THEN 0 ELSE OLD.quantity END THEN 'out'
       ELSE 'adjustment'
     END,
     auth.uid()
@@ -122,7 +122,7 @@ $$ LANGUAGE plpgsql;
 
 -- 在庫更新時のトリガー
 CREATE TRIGGER inventory_history_trigger
-  AFTER UPDATE ON inventory
+  AFTER UPDATE, INSERT ON inventory
   FOR EACH ROW
   EXECUTE FUNCTION record_inventory_history();
 
