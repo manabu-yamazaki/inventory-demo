@@ -38,6 +38,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     initializeAuth();
   }, []);
 
+  useEffect(() => {
+    if (!user) {
+      router.push(`/login`);
+    }
+  }, [user, router]);
+
   const handleSignIn = async (email: string, password: string) => {
     try {
       setLoading(true);
