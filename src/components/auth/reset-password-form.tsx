@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { supabase } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase/config';
 
 export function ResetPasswordForm() {
   const [email, setEmail] = useState('');
